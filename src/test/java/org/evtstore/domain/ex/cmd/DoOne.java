@@ -6,11 +6,11 @@ public class DoOne extends Command {
   public Integer one;
 
   public DoOne(Integer one) {
-    super(Cmd.DoOne.get());
+    super(Cmd.DoOne);
     this.one = one;
   }
 
   public DoOne() {
-    super(Cmd.DoOne.get());
+    super(Cmd.DoOne);
   }
 }

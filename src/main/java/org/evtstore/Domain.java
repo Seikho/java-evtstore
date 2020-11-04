@@ -18,22 +18,22 @@ public class Domain<Agg extends Aggregate> {
   public <C extends Command, P extends Payload> void register(String type, CommandHandler<C, Agg> handler) {
     var casted = (CommandHandler<Command, Agg>) handler;
     this.commands.put(type, casted);
-    System.out.println(String.format("Registered %s", type));
   }
 
   public <Cmd extends Command> Agg execute(String aggregateId, Cmd cmd) {
+    var agg = getAggregate(aggregateId);
+
+    // Should we throw here?
+    // This may be unexpected
     if (!commands.containsKey(cmd.type)) {
-      System.out.println(String.format("No cmd handler for %s", cmd.type));
-      // Throw?
+      return agg;
     }
 
     var handler = this.commands.get(cmd.type);
-    var agg = getAggregate(aggregateId);
 
+    // The handler did not return an event, no need to append
     var payload = handler.apply(cmd, agg);
     if (payload == null) {
-      System.out.println(cmd.type);
-      System.out.println("No still payload returned");
       return agg;
     }
 
@@ -50,6 +50,10 @@ public class Domain<Agg extends Aggregate> {
     var events = this.provider.getEventsFor(stream, aggregateId, "");
     var nextAgg = this.folder.fold(events);
     return nextAgg;
+  }
+
+  public EventHandler<Agg> createHandler(String stream, String bookmark) {
+    return new EventHandler<Agg>(provider, stream, bookmark);
   }
 
 }

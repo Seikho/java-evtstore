@@ -5,6 +5,7 @@ import com.eclipsesource.json.Json;
 import org.evtstore.CommandHandler;
 import org.evtstore.Domain;
 import org.evtstore.Payload;
+import org.evtstore.Provider;
 import org.evtstore.domain.ex.cmd.Cmd;
 import org.evtstore.domain.ex.cmd.DoOne;
 import org.evtstore.provider.MemoryProvider;
@@ -17,9 +18,17 @@ public class DomainExample extends Domain<ExampleAgg> {
     return payload;
   };
 
+  public DomainExample(Provider<ExampleAgg> provider, String stream) {
+    super(stream, provider, new ExampleFold());
+    registerHandlers();
+  }
+
   public DomainExample(String stream) {
     super(stream, new MemoryProvider<ExampleAgg>(), new ExampleFold());
+    registerHandlers();
+  }
 
-    this.register(Cmd.DoOne.get(), this.doOne);
+  private void registerHandlers() {
+    this.register(Cmd.DoOne, this.doOne);
   }
 }
