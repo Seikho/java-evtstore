@@ -18,13 +18,13 @@ public class DomainExample extends Domain<ExampleAgg> {
     return payload;
   };
 
-  public DomainExample(Provider<ExampleAgg> provider, String stream) {
+  public DomainExample(Provider provider, String stream) {
     super(stream, provider, new ExampleFold());
     registerHandlers();
   }
 
   public DomainExample(String stream) {
-    super(stream, new MemoryProvider<ExampleAgg>(), new ExampleFold());
+    super(stream, new MemoryProvider(), new ExampleFold());
     registerHandlers();
   }
 

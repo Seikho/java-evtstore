@@ -11,16 +11,16 @@ import java.util.TimeZone;
 import org.evtstore.Aggregate;
 import org.evtstore.Provider;
 import org.evtstore.StoreEvent;
-import org.neo4j.driver.Session;
+import org.neo4j.driver.Driver;
 import org.neo4j.driver.Value;
 
-public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
-  private Session session;
+public class Neo4jProvider implements Provider {
+  private Driver driver;
   private String events;
   private String bookmarks;
 
-  public Neo4jProvider(Session session, String eventsLabel, String bookmarksLabel) {
-    this.session = session;
+  public Neo4jProvider(Driver driver, String eventsLabel, String bookmarksLabel) {
+    this.driver = driver;
     this.events = eventsLabel;
     this.bookmarks = bookmarksLabel;
   }
@@ -29,14 +29,17 @@ public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
   public String getPosition(String bookmark) {
     Map<String, Object> params = Map.of("bm", bookmark);
     var query = String.format("MATCH (bm: %s) WHERE bm.bookmark = $bm RETURN bm", this.bookmarks);
-    var result = session.run(query, params)
-        .list(r -> r.get("bm").get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME));
-    if (result.isEmpty()) {
-      return toISOString(new Date(0));
-    }
 
-    var pos = result.get(0);
-    return pos;
+    try (var session = driver.session()) {
+      var result = session.run(query, params)
+          .list(r -> r.get("bm").get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME));
+      if (result.isEmpty()) {
+        return toISOString(new Date(0));
+      }
+
+      var pos = result.get(0);
+      return pos;
+    }
   }
 
   @Override
@@ -45,7 +48,10 @@ public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
     var query = String.format(
         "MERGE (bm: %s { bookmark: $bookmark } ) ON CREATE SET bm.position = $position ON MATCH SET bm.position = $position",
         bookmarks);
-    session.run(query, params);
+
+    try (var session = driver.session()) {
+      session.run(query, params);
+    }
   }
 
   @Override
@@ -60,8 +66,11 @@ public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
     var streamList = toStreamList(streams);
     var query = String.format("MATCH (ev: %s) WHERE ev.stream IN [%s] AND ev.position > datetime($position) "
         + "RETURN ev ORDER BY ev.position ASC", events, streamList);
-    var results = session.run(query, params).list(r -> convert(r.get("ev")));
-    return results;
+
+    try (var session = driver.session()) {
+      var results = session.run(query, params).list(r -> convert(r.get("ev")));
+      return results;
+    }
   }
 
   @Override
@@ -71,12 +80,15 @@ public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
     var query = String
         .format("MATCH (ev: %s) WHERE ev.stream = $stream AND ev.position > datetime($pos) AND ev.aggregateId = $id "
             + "RETURN ev ORDER BY ev.position ASC", events);
-    var results = session.run(query, params).list(r -> convert(r.get("ev")));
-    return results;
+
+    try (var session = driver.session()) {
+      var results = session.run(query, params).list(r -> convert(r.get("ev")));
+      return results;
+    }
   }
 
   @Override
-  public StoreEvent append(StoreEvent event, Agg agg) {
+  public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg) {
     var streamIdVersion = event.stream + "_" + agg.aggregateId + "_" + (agg.version + 1);
     Map<String, Object> params = Map.of("stream", event.stream, "version", agg.version + 1, "timestamp",
         toISOString(event.timestamp), "event", event.event, "streamIdVersion", streamIdVersion, "id",
@@ -85,42 +97,46 @@ public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
         + "CREATE (ev: %s { stream: $stream, position: datetime.transaction(), version: $version, timestamp: datetime($timestamp), aggregateId: $id, event: $event, _streamPosition: streampos, _streamIdVersion: $streamIdVersion }) RETURN ev",
         events);
 
-    var result = session.run(query, params);
-    var ev = result.single().get("ev");
+    try (var session = driver.session()) {
+      var result = session.run(query, params);
+      var ev = result.single().get("ev");
 
-    var stored = event.clone();
-    stored.version = ev.get("version").asInt();
-    stored.position = ev.get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
-    return stored;
+      var stored = event.clone();
+      stored.version = ev.get("version").asInt();
+      stored.position = ev.get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
+      return stored;
+    }
   }
 
   public void migrate() {
-    var trx = session.beginTransaction();
-    {
-      var query = String.format(
-          "CREATE INDEX %s_stream_position " + "IF NOT EXISTS " + "FOR (ev: %s) " + "ON (ev.stream, ev.position)",
-          events, events);
-      trx.run(query);
-    }
-    {
-      var query = String.format(
-          "CREATE INDEX %s_stream_id_pos IF NOT EXISTS " + "FOR (ev: %s) ON (ev.stream, ev.aggregateId, ev.position)",
-          events, events);
-      trx.run(query);
-    }
-    {
-      var query = String.format(
-          "CREATE CONSTRAINT %s_streampos_unique IF NOT EXISTS " + "ON (ev: %s) ASSERT ev._streamPos IS UNIQUE", events,
-          events);
-      trx.run(query);
-    }
-    {
-      var query = String.format("CREATE CONSTRAINT %s_streamidversion_unique IF NOT EXISTS "
-          + "ON (ev: %s) ASSERT ev._streamIdVersion IS UNIQUE", events, events);
-      trx.run(query);
-    }
+    try (var session = driver.session()) {
+      var trx = session.beginTransaction();
+      {
+        var query = String.format(
+            "CREATE INDEX %s_stream_position " + "IF NOT EXISTS " + "FOR (ev: %s) " + "ON (ev.stream, ev.position)",
+            events, events);
+        trx.run(query);
+      }
+      {
+        var query = String.format(
+            "CREATE INDEX %s_stream_id_pos IF NOT EXISTS " + "FOR (ev: %s) ON (ev.stream, ev.aggregateId, ev.position)",
+            events, events);
+        trx.run(query);
+      }
+      {
+        var query = String.format(
+            "CREATE CONSTRAINT %s_streampos_unique IF NOT EXISTS " + "ON (ev: %s) ASSERT ev._streamPos IS UNIQUE",
+            events, events);
+        trx.run(query);
+      }
+      {
+        var query = String.format("CREATE CONSTRAINT %s_streamidversion_unique IF NOT EXISTS "
+            + "ON (ev: %s) ASSERT ev._streamIdVersion IS UNIQUE", events, events);
+        trx.run(query);
+      }
 
-    trx.commit();
+      trx.commit();
+    }
   }
 
   private String toStreamList(String[] streams) {

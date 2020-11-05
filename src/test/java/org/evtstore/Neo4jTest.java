@@ -11,21 +11,36 @@ import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.GraphDatabase;
 
 public class Neo4jTest extends ProviderTester {
-  public static DomainExample domain;
+  private static Provider provider;
+  private static DomainExample two;
+  private static DomainExample one;
 
   @BeforeClass
   public static void before() {
     var driver = GraphDatabase.driver("bolt://localhost:30010", AuthTokens.basic("neo4j", "admin"));
-    var session = driver.session();
-    session.run("MATCH (n: JEvents) DETACH DELETE n");
-    session.run("MATCH (n: JBookmarks) DETACH DELETE n");
-    var provider = new Neo4jProvider<ExampleAgg>(session, "JEvents", "JBookmarks");
+    try (var session = driver.session()) {
+      session.run("MATCH (n: JEvents) DETACH DELETE n");
+      session.run("MATCH (n: JBookmarks) DETACH DELETE n");
+    }
+    var provider = new Neo4jProvider(driver, "JEvents", "JBookmarks");
     provider.migrate();
-    Neo4jTest.domain = new DomainExample(provider, "test1");
+    Neo4jTest.provider = provider;
+    Neo4jTest.one = new DomainExample(provider, "test-1");
+    Neo4jTest.two = new DomainExample(provider, "test-2");
   }
 
   @Override
-  public Domain<ExampleAgg> getDomain() {
-    return domain;
+  public Provider getProvider() {
+    return provider;
+  }
+
+  @Override
+  public Domain<ExampleAgg> getOne() {
+    return one;
+  }
+
+  @Override
+  public Domain<ExampleAgg> getTwo() {
+    return two;
   }
 }

@@ -5,11 +5,11 @@ import java.util.Map;
 
 public class Domain<Agg extends Aggregate> {
   private String stream;
-  private Provider<Agg> provider;
+  private Provider provider;
   private Folder<Agg> folder;
   private Map<String, CommandHandler<Command, Agg>> commands = new HashMap<String, CommandHandler<Command, Agg>>();
 
-  public Domain(String stream, Provider<Agg> provider, Folder<Agg> folder) {
+  public Domain(String stream, Provider provider, Folder<Agg> folder) {
     this.stream = stream;
     this.provider = provider;
     this.folder = folder;
@@ -53,8 +53,8 @@ public class Domain<Agg extends Aggregate> {
     return nextAgg;
   }
 
-  public EventHandler<Agg> createHandler(String stream, String bookmark) {
-    return new EventHandler<Agg>(provider, stream, bookmark);
+  public EventHandler createHandler(String stream, String bookmark) {
+    return new EventHandler(provider, stream, bookmark);
   }
 
 }

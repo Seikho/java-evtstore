@@ -5,12 +5,32 @@ package org.evtstore;
 
 import org.evtstore.domain.ex.DomainExample;
 import org.evtstore.domain.ex.ExampleAgg;
+import org.evtstore.provider.MemoryProvider;
+import org.junit.BeforeClass;
 
 public class MemoryTest extends ProviderTester {
-    public static DomainExample domain = new DomainExample("test1");
+    private static MemoryProvider prv = new MemoryProvider();
+    private static DomainExample one;
+    private static DomainExample two;
+
+    @BeforeClass
+    public static void before() {
+        one = new DomainExample(prv, "test-1");
+        two = new DomainExample(prv, "test-2");
+    }
 
     @Override
-    public Domain<ExampleAgg> getDomain() {
-        return domain;
+    public Provider getProvider() {
+        return prv;
+    }
+
+    @Override
+    public Domain<ExampleAgg> getOne() {
+        return one;
+    }
+
+    @Override
+    public Domain<ExampleAgg> getTwo() {
+        return two;
     }
 }

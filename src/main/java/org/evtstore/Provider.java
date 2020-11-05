@@ -1,6 +1,6 @@
 package org.evtstore;
 
-public interface Provider<Agg extends Aggregate> {
+public interface Provider {
   public Iterable<StoreEvent> getEventsFor(String stream, String aggregateId, String position);
 
   public Iterable<StoreEvent> getEventsFrom(String stream, String position);
@@ -11,5 +11,5 @@ public interface Provider<Agg extends Aggregate> {
 
   public String getPosition(String bookmark);
 
-  public StoreEvent append(StoreEvent event, Agg agg);
+  public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg);
 }

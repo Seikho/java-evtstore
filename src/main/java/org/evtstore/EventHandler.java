@@ -6,21 +6,30 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class EventHandler<Agg extends Aggregate> {
+public class EventHandler {
   private boolean running = false;
   private Map<String, Consumer<Event>> handlers = new HashMap<String, Consumer<Event>>();
-  private Provider<Agg> provider;
+  private Provider provider;
   private String position = "";
-  private String stream = "";
   private String bookmark;
+  private String[] streams;
 
-  public EventHandler(Provider<Agg> provider, String stream, String bookmark) {
+  public EventHandler(Provider provider, String stream, String bookmark) {
     this.provider = provider;
-    this.stream = stream;
     this.bookmark = bookmark;
     var bm = provider.getPosition(bookmark);
     this.position = bm;
     this.process();
+    this.streams = new String[] { stream };
+  }
+
+  public EventHandler(Provider provider, String[] streams, String bookmark) {
+    this.provider = provider;
+    this.bookmark = bookmark;
+    var bm = provider.getPosition(bookmark);
+    this.position = bm;
+    this.process();
+    this.streams = streams;
   }
 
   public void start() {
@@ -43,7 +52,8 @@ public class EventHandler<Agg extends Aggregate> {
   }
 
   public Integer runOnce() {
-    var events = this.provider.getEventsFrom(stream, position);
+    var events = this.provider.getEventsFrom(streams, position);
+
     var iterator = events.iterator();
     int size = 0;
     while (iterator.hasNext()) {

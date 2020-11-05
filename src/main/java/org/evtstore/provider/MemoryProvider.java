@@ -9,7 +9,7 @@ import java.util.Map;
 
 import com.google.common.collect.Collections2;
 
-public class MemoryProvider<Agg extends Aggregate> implements Provider<Agg> {
+public class MemoryProvider implements Provider {
   private ArrayList<StoreEvent> events = new ArrayList<StoreEvent>();
   private Map<String, String> bookmarks = new HashMap<String, String>();
 
@@ -31,13 +31,10 @@ public class MemoryProvider<Agg extends Aggregate> implements Provider<Agg> {
     var events = Collections2.filter(this.events,
         event -> includes(streams, event.stream) && event.position.compareTo(position) > 0);
     return events;
-    // var l = events.stream().toArray(StoreEvent[]::new);
-    // return Arrays.asList(l);
-    // return events;
   }
 
   @Override
-  public StoreEvent append(StoreEvent event, Agg agg) {
+  public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg) {
     var toPersist = event.clone();
     toPersist.version = agg.version + 1;
     toPersist.position = String.valueOf(events.size());
