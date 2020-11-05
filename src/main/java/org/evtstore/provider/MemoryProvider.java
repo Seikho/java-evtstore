@@ -4,7 +4,6 @@ import org.evtstore.Aggregate;
 import org.evtstore.Provider;
 import org.evtstore.StoreEvent;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,10 +28,12 @@ public class MemoryProvider<Agg extends Aggregate> implements Provider<Agg> {
 
   @Override
   public Iterable<StoreEvent> getEventsFrom(String[] streams, String position) {
-    var str = Arrays.stream(streams);
     var events = Collections2.filter(this.events,
-        event -> str.anyMatch(s -> s.equals(event.event)) && event.position.compareTo(position) > 0);
+        event -> includes(streams, event.stream) && event.position.compareTo(position) > 0);
     return events;
+    // var l = events.stream().toArray(StoreEvent[]::new);
+    // return Arrays.asList(l);
+    // return events;
   }
 
   @Override
@@ -53,6 +54,15 @@ public class MemoryProvider<Agg extends Aggregate> implements Provider<Agg> {
   @Override
   public void setPosition(String bookmark, String position) {
     this.bookmarks.put(bookmark, position);
+  }
+
+  private boolean includes(String[] list, String value) {
+    for (int i = 0; i < list.length; i++) {
+      if (list[i].equals(value)) {
+        return true;
+      }
+    }
+    return false;
   }
 
 }

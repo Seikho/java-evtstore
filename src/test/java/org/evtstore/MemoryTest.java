@@ -49,7 +49,7 @@ public class MemoryTest {
         Integer expected = 24;
         var model = domain.createHandler("test1", "bm1");
         model.handle("EvOne", ev -> {
-            if (ev.aggregateId != id) {
+            if (!ev.aggregateId.equals(id)) {
                 return;
             }
 

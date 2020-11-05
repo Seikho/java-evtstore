@@ -49,6 +49,7 @@ public class Domain<Agg extends Aggregate> {
   public Agg getAggregate(String aggregateId) {
     var events = this.provider.getEventsFor(stream, aggregateId, "");
     var nextAgg = this.folder.fold(events);
+    nextAgg.aggregateId = aggregateId;
     return nextAgg;
   }
 

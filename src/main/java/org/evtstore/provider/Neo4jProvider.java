@@ -2,6 +2,7 @@ package org.evtstore.provider;
 
 import java.text.SimpleDateFormat;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
@@ -10,8 +11,8 @@ import java.util.TimeZone;
 import org.evtstore.Aggregate;
 import org.evtstore.Provider;
 import org.evtstore.StoreEvent;
-import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
+import org.neo4j.driver.Value;
 
 public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
   private Session session;
@@ -28,17 +29,21 @@ public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
   public String getPosition(String bookmark) {
     Map<String, Object> params = Map.of("bm", bookmark);
     var query = String.format("MATCH (bm: %s) WHERE bm.bookmark = $bm RETURN bm", this.bookmarks);
-    var result = session.run(query, params);
-    var position = result.single().get("position").asString();
-    return position;
+    var result = session.run(query, params)
+        .list(r -> r.get("bm").get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME));
+    if (result.isEmpty()) {
+      return toISOString(new Date(0));
+    }
+
+    var pos = result.get(0);
+    return pos;
   }
 
   @Override
   public void setPosition(String bookmark, String position) {
     Map<String, Object> params = Map.of("bookmark", bookmark, "position", position);
-    params.put("bookmark", bookmark);
-    params.put("position", position);
-    var query = String.format("MATCH (bm: %s) WHERE bm.bookmark = $bookmark SET bm.position = $position RETURN bm",
+    var query = String.format(
+        "MERGE (bm: %s { bookmark: $bookmark } ) ON CREATE SET bm.position = $position ON MATCH SET bm.position = $position",
         bookmarks);
     session.run(query, params);
   }
@@ -55,17 +60,18 @@ public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
     var streamList = toStreamList(streams);
     var query = String.format("MATCH (ev: %s) WHERE ev.stream IN [%s] AND ev.position > datetime($position) "
         + "RETURN ev ORDER BY ev.position ASC", events, streamList);
-    var results = session.run(query, params).list(r -> convert(r));
+    var results = session.run(query, params).list(r -> convert(r.get("ev")));
     return results;
   }
 
   @Override
   public Iterable<StoreEvent> getEventsFor(String stream, String aggregateId, String position) {
-    Map<String, Object> params = Map.of("stream", stream, "id", aggregateId, "pos", position);
+    var pos = position.equals("") ? toISOString(new Date(0)) : position;
+    Map<String, Object> params = Map.of("stream", stream, "id", aggregateId, "pos", pos);
     var query = String
         .format("MATCH (ev: %s) WHERE ev.stream = $stream AND ev.position > datetime($pos) AND ev.aggregateId = $id "
-            + "RETURN ev ORDER BY ev.position ASC");
-    var results = session.run(query, params).list(r -> convert(r));
+            + "RETURN ev ORDER BY ev.position ASC", events);
+    var results = session.run(query, params).list(r -> convert(r.get("ev")));
     return results;
   }
 
@@ -73,12 +79,18 @@ public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
   public StoreEvent append(StoreEvent event, Agg agg) {
     var streamIdVersion = event.stream + "_" + agg.aggregateId + "_" + (agg.version + 1);
     Map<String, Object> params = Map.of("stream", event.stream, "version", agg.version + 1, "timestamp",
-        toISOString(event.timestamp), "event", event.event, "streamIdVersion", streamIdVersion);
+        toISOString(event.timestamp), "event", event.event, "streamIdVersion", streamIdVersion, "id",
+        event.aggregateId);
     var query = String.format("WITH $stream + \"_\" + toString(datetime.transaction()) as streampos "
-        + "CREATE (ev: %s { stream: $stream, position: datetime.transaction(), version: $version, timestamp: datetime($timestamp), aggregateId: $id, event: $event, _streamPosition: streampos, _steamIdVersion: $streamIdVersion }) RETURN ev",
+        + "CREATE (ev: %s { stream: $stream, position: datetime.transaction(), version: $version, timestamp: datetime($timestamp), aggregateId: $id, event: $event, _streamPosition: streampos, _streamIdVersion: $streamIdVersion }) RETURN ev",
         events);
-    var result = session.run(query, params).single();
-    var stored = convert(result);
+
+    var result = session.run(query, params);
+    var ev = result.single().get("ev");
+
+    var stored = event.clone();
+    stored.version = ev.get("version").asInt();
+    stored.position = ev.get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
     return stored;
   }
 
@@ -126,14 +138,14 @@ public class Neo4jProvider<Agg extends Aggregate> implements Provider<Agg> {
     return clause;
   }
 
-  private StoreEvent convert(Record record) {
+  private StoreEvent convert(Value record) {
     var ev = new StoreEvent();
-    ev.position = record.get("position").asString();
+    ev.position = record.get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
     ev.aggregateId = record.get("aggregateId").asString();
     ev.event = record.get("event").asString();
     ev.stream = record.get("stream").asString();
     ev.version = record.get("version").asInt();
-    var timestamp = record.get("timestamp").asString();
+    var timestamp = record.get("timestamp").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
     var dt = OffsetDateTime.parse(timestamp);
     ev.timestamp = new Date(dt.toInstant().toEpochMilli());
     return ev;

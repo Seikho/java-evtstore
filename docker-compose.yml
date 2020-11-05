@@ -1,0 +1,11 @@
+version: '2'
+
+services:
+  neo:
+    image: neo4j:4.1
+    restart: always
+    ports:
+      - '30010:7687'
+      - '30011:7474'
+    environment:
+      - 'NEO4J_AUTH=neo4j/admin'
