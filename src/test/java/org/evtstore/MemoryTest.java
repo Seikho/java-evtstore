@@ -3,60 +3,14 @@
  */
 package org.evtstore;
 
-import org.junit.Test;
-
-import static org.junit.Assert.*;
-
 import org.evtstore.domain.ex.DomainExample;
-import org.evtstore.domain.ex.cmd.DoOne;
+import org.evtstore.domain.ex.ExampleAgg;
 
-public class MemoryTest {
+public class MemoryTest extends ProviderTester {
     public static DomainExample domain = new DomainExample("test1");
 
-    @Test
-    public void appendEvent() {
-        var actual = domain.execute("one", new DoOne(42));
-        assertEquals((Integer) 1, actual.version);
-        assertEquals((Integer) 42, actual.one);
-    }
-
-    @Test
-    public void appendAnother() {
-        var agg = domain.getAggregate("one");
-        assertEquals((Integer) 1, agg.version);
-        domain.execute("one", new DoOne(42));
-        var actual = domain.getAggregate("one");
-        assertEquals((Integer) 2, actual.version);
-        assertEquals((Integer) 84, actual.one);
-    }
-
-    @Test
-    public void appendToNewAggregate() {
-        var agg = domain.getAggregate("two");
-        assertEquals((Integer) 0, agg.version);
-        domain.execute("two", new DoOne(10));
-        var actual = domain.getAggregate("two");
-        assertEquals((Integer) 1, actual.version);
-        assertEquals((Integer) 10, actual.one);
-    }
-
-    @Test
-    public void handlerProcess() {
-        var id = "three";
-        domain.execute(id, new DoOne(8));
-        domain.execute(id, new DoOne(16));
-        var actual = new Field<Integer>(0);
-        Integer expected = 24;
-        var model = domain.createHandler("test1", "bm1");
-        model.handle("EvOne", ev -> {
-            if (!ev.aggregateId.equals(id)) {
-                return;
-            }
-
-            var one = ev.payload.get("one").asInt();
-            actual.set(actual.get() + one);
-        });
-        model.runOnce();
-        assertEquals(expected, actual.get());
+    @Override
+    public Domain<ExampleAgg> getDomain() {
+        return domain;
     }
 }
