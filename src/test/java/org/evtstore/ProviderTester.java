@@ -55,4 +55,16 @@ public abstract class ProviderTester {
     model.runOnce();
     assertEquals(expected, actual.get());
   }
+
+  @Test
+  public void emptyAggregate() {
+    var actual = getDomain().getAggregate("non-exist");
+    assertEquals((Integer) 0, actual.version);
+  }
+
+  @Test
+  public void commandResult() {
+    var actual = getDomain().execute("cmdresult", new DoOne(20));
+    assertEquals((Integer) 20, actual.one);
+  }
 }
