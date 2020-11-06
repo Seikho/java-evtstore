@@ -16,9 +16,9 @@ public class Domain<Agg extends Aggregate> {
     this.folder = folder;
   }
 
-  public <C extends Command, P extends Payload> void register(String type, CommandHandler<C, Agg> handler) {
+  public <Cmd extends Command> void register(Cmd command, CommandHandler<Cmd, Agg> handler) {
     var casted = (CommandHandler<Command, Agg>) handler;
-    this.commands.put(type, casted);
+    this.commands.put(command.type, casted);
   }
 
   public <Cmd extends Command> Agg execute(String aggregateId, Cmd cmd) {

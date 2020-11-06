@@ -16,7 +16,7 @@ public class MemoryProvider implements Provider {
   @Override
   public Iterable<StoreEvent> getEventsFor(String stream, String id, String position) {
     var events = Collections2.filter(this.events,
-        event -> event.stream.equals(stream) && event.aggregateId.equals(id) && event.position.compareTo(position) > 0);
+        event -> event.stream.equals(stream) && event.aggregateId.equals(id) && isHigher(event.position, position));
     return events;
   }
 
@@ -29,7 +29,7 @@ public class MemoryProvider implements Provider {
   @Override
   public Iterable<StoreEvent> getEventsFrom(String[] streams, String position) {
     var events = Collections2.filter(this.events,
-        event -> includes(streams, event.stream) && event.position.compareTo(position) > 0);
+        event -> includes(streams, event.stream) && isHigher(event.position, position));
     return events;
   }
 
@@ -65,6 +65,12 @@ public class MemoryProvider implements Provider {
       }
     }
     return false;
+  }
+
+  private boolean isHigher(String high, String low) {
+    var h = high.equals("") ? 0 : Integer.parseInt(high);
+    var l = low.equals("") ? 0 : Integer.parseInt(low);
+    return h > l;
   }
 
 }

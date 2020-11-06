@@ -3,7 +3,7 @@ package org.evtstore;
 import static org.junit.Assert.assertEquals;
 
 import org.evtstore.domain.ex.ExampleAgg;
-import org.evtstore.domain.ex.cmd.DoOne;
+import org.evtstore.domain.ex.cmd.Commands;
 import org.junit.Test;
 
 public abstract class ProviderTester {
@@ -13,29 +13,35 @@ public abstract class ProviderTester {
 
   public abstract Provider getProvider();
 
+  public abstract String getName();
+
   @Test
   public void appendEvent() {
-    var actual = getOne().execute("one", new DoOne(42));
+    var actual = getOne().execute("one", Commands.doOne(42));
     assertEquals((Integer) 1, actual.version);
     assertEquals((Integer) 42, actual.one);
   }
 
   @Test
   public void appendAnother() {
-    var agg = getOne().getAggregate("one");
-    assertEquals((Integer) 1, agg.version);
-    getOne().execute("one", new DoOne(42));
-    var actual = getOne().getAggregate("one");
+    var id = "appendAnother";
+    var first = getOne().execute(id, Commands.doOne(1));
+    var second = getOne().execute(id, Commands.doTwo(2));
+    var actual = getOne().getAggregate(id);
+    assertEquals((Integer) 1, first.version);
+    assertEquals((Integer) 2, second.version);
     assertEquals((Integer) 2, actual.version);
-    assertEquals((Integer) 84, actual.one);
+    assertEquals((Integer) 1, actual.one);
+    assertEquals((Integer) 2, actual.two);
   }
 
   @Test
   public void appendToNewAggregate() {
-    var agg = getOne().getAggregate("two");
+    var id = "appendToNewAggregate";
+    var agg = getOne().getAggregate(id);
     assertEquals((Integer) 0, agg.version);
-    getOne().execute("two", new DoOne(10));
-    var actual = getOne().getAggregate("two");
+    getOne().execute(id, Commands.doOne(10));
+    var actual = getOne().getAggregate(id);
     assertEquals((Integer) 1, actual.version);
     assertEquals((Integer) 10, actual.one);
   }
@@ -43,8 +49,8 @@ public abstract class ProviderTester {
   @Test
   public void handlerProcess() {
     var id = "three";
-    getOne().execute(id, new DoOne(8));
-    getOne().execute(id, new DoOne(16));
+    getOne().execute(id, Commands.doOne(8));
+    getOne().execute(id, Commands.doOne(16));
     var actual = new Field<Integer>(0);
     Integer expected = 24;
     var model = getOne().createHandler("test-1", "bm1");
@@ -68,15 +74,15 @@ public abstract class ProviderTester {
 
   @Test
   public void commandResult() {
-    var actual = getOne().execute("cmdresult", new DoOne(20));
+    var actual = getOne().execute("cmdresult", Commands.doOne(20));
     assertEquals((Integer) 20, actual.one);
   }
 
   @Test
   public void writeToDifferentStreams() {
-    getOne().execute("multi-11", new DoOne(1));
-    getOne().execute("multi-11", new DoOne(2));
-    getTwo().execute("multi-11", new DoOne(4));
+    getOne().execute("multi-11", Commands.doOne(1));
+    getOne().execute("multi-11", Commands.doOne(2));
+    getTwo().execute("multi-11", Commands.doOne(4));
 
     var one = getOne().getAggregate("multi-11");
     var two = getTwo().getAggregate("multi-11");
@@ -87,9 +93,9 @@ public abstract class ProviderTester {
 
   @Test
   public void modelFromMultipleStreams() {
-    getOne().execute("multi-21", new DoOne(1));
-    getOne().execute("multi-21", new DoOne(2));
-    getTwo().execute("multi-22", new DoOne(4));
+    getOne().execute("multi-21", Commands.doOne(1));
+    getOne().execute("multi-21", Commands.doOne(2));
+    getTwo().execute("multi-22", Commands.doOne(4));
 
     var prv = getProvider();
     var streams = new String[] { "test-1", "test-2" };
@@ -119,5 +125,17 @@ public abstract class ProviderTester {
 
     assertEquals((Integer) 3, one.get());
     assertEquals((Integer) 4, two.get());
+
   }
+
+  @Test
+  public void foldDifferentEvents() {
+    getOne().execute("diff-1", Commands.doOne(1));
+    getOne().execute("diff-1", Commands.doTwo(2));
+
+    var actual = getOne().getAggregate("diff-1");
+    assertEquals((Integer) 1, actual.one);
+    assertEquals((Integer) 2, actual.two);
+  }
+
 }

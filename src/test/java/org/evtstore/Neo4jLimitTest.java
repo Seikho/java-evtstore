@@ -15,6 +15,11 @@ public class Neo4jLimitTest extends ProviderTester {
   private static DomainExample two;
   private static DomainExample one;
 
+  @Override
+  public String getName() {
+    return "Neo4jLimitTest";
+  }
+
   @BeforeClass
   public static void before() {
     var driver = GraphDatabase.driver("bolt://localhost:30010", AuthTokens.basic("neo4j", "admin"));

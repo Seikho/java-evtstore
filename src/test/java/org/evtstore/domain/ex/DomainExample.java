@@ -1,20 +1,21 @@
 package org.evtstore.domain.ex;
 
-import com.eclipsesource.json.Json;
-
 import org.evtstore.CommandHandler;
 import org.evtstore.Domain;
-import org.evtstore.Payload;
 import org.evtstore.Provider;
-import org.evtstore.domain.ex.cmd.Cmd;
 import org.evtstore.domain.ex.cmd.DoOne;
+import org.evtstore.domain.ex.cmd.DoTwo;
+import org.evtstore.domain.ex.cmd.Events;
 import org.evtstore.provider.MemoryProvider;
 
 public class DomainExample extends Domain<ExampleAgg> {
   private CommandHandler<DoOne, ExampleAgg> doOne = (cmd, agg) -> {
-    var event = Json.object();
-    event.add("one", cmd.one);
-    var payload = new Payload("EvOne", event);
+    var payload = Events.evOne(cmd.one);
+    return payload;
+  };
+
+  private CommandHandler<DoTwo, ExampleAgg> doTwo = (cmd, agg) -> {
+    var payload = Events.evTwo(cmd.two);
     return payload;
   };
 
@@ -29,6 +30,7 @@ public class DomainExample extends Domain<ExampleAgg> {
   }
 
   private void registerHandlers() {
-    this.register(Cmd.DoOne, this.doOne);
+    this.register(new DoOne(), this.doOne);
+    this.register(new DoTwo(), this.doTwo);
   }
 }

@@ -13,6 +13,11 @@ public class MemoryTest extends ProviderTester {
     private static DomainExample one;
     private static DomainExample two;
 
+    @Override
+    public String getName() {
+        return "MemoryTest";
+    }
+
     @BeforeClass
     public static void before() {
         one = new DomainExample(prv, "test-1");
