@@ -1,9 +1,5 @@
 package org.evtstore;
 
-public class Command {
-  public String type;
+public abstract class Command {
 
-  public Command(String type) {
-    this.type = type;
-  }
 }

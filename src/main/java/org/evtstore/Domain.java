@@ -16,24 +16,24 @@ public class Domain<Agg extends Aggregate> {
     this.folder = folder;
   }
 
-  public <Cmd extends Command> void register(Cmd command, CommandHandler<Cmd, Agg> handler) {
+  public <Cmd extends Command> void register(CommandHandler<Cmd, Agg> handler) {
     var casted = (CommandHandler<Command, Agg>) handler;
-    this.commands.put(command.type, casted);
+    this.commands.put(handler.type, casted);
   }
 
   public <Cmd extends Command> Agg execute(String aggregateId, Cmd cmd) {
     var agg = getAggregate(aggregateId);
-
+    var type = cmd.getClass().getSimpleName();
     // Should we throw here?
     // This may be unexpected
-    if (!commands.containsKey(cmd.type)) {
+    if (!commands.containsKey(type)) {
       return agg;
     }
 
-    var handler = this.commands.get(cmd.type);
+    var command = this.commands.get(type);
 
     // The handler did not return an event, no need to append
-    var payload = handler.apply(cmd, agg);
+    var payload = command.handler.apply(cmd, agg);
     if (payload == null) {
       return agg;
     }

@@ -7,11 +7,7 @@ public class DoOne extends Command {
   public Integer one;
 
   public DoOne(Integer one) {
-    super("DoOne");
+    super();
     this.one = one;
-  }
-
-  public DoOne() {
-    super("DoOne");
   }
 }
