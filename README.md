@@ -5,12 +5,15 @@
 
 ## Why
 
-I reguarly use event sourcing and wanted to lower the barrier for entry and increase productivity for colleagues.  
-The motivation for creating a Java evtstore implementation
+I reguarly use event sourcing and wanted to lower the barrier for entry and increase productivity for colleagues.
+
+The motivation for creating implementations in different run-times is to provide familiarity, consistency, and predictability.  
+Database providers are intended to be compatible across all of the run-times supported by `evtstore`.  
+An event log driven by Java can be consumed by the equivalent database provider in Node.js.
 
 The design goals are:
 
-- To allow interopability with event stores managed by [Node.js evtstore](https://github.com/seikho/evtstore) library
+- To allow interopability with `evtstore` implementations written in other languages (i.e., [Node.js](https://github.com/seikho/evtstore))
 - Make creating domains quick and intuitive
 - Be easy to test
 - Allow developers to focus on application/business problems instead of Event Sourcing and CQRS problems
