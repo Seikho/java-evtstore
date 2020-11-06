@@ -52,6 +52,10 @@ public class EventHandler {
   }
 
   public Integer runOnce() {
+    return runOnce(0);
+  }
+
+  public Integer runOnce(Integer prevCount) {
     var events = this.provider.getEventsFrom(streams, position);
 
     var iterator = events.iterator();
@@ -76,10 +80,14 @@ public class EventHandler {
     }
 
     if (size == 0) {
-      return 0;
+      return prevCount;
     }
 
-    return size;
+    if (size > 0) {
+      return runOnce(size + prevCount);
+    }
+
+    return size + prevCount;
   }
 
   public void pause() {

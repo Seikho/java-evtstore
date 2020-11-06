@@ -12,4 +12,6 @@ public interface Provider {
   public String getPosition(String bookmark);
 
   public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg);
+
+  public Integer getLimit();
 }

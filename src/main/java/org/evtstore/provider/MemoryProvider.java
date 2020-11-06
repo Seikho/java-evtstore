@@ -53,6 +53,11 @@ public class MemoryProvider implements Provider {
     this.bookmarks.put(bookmark, position);
   }
 
+  @Override
+  public Integer getLimit() {
+    return 0;
+  }
+
   private boolean includes(String[] list, String value) {
     for (int i = 0; i < list.length; i++) {
       if (list[i].equals(value)) {

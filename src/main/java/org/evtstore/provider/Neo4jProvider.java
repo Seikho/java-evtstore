@@ -18,11 +18,21 @@ public class Neo4jProvider implements Provider {
   private Driver driver;
   private String events;
   private String bookmarks;
+  private Integer limit = 1000;
 
   public Neo4jProvider(Driver driver, String eventsLabel, String bookmarksLabel) {
     this.driver = driver;
     this.events = eventsLabel;
     this.bookmarks = bookmarksLabel;
+  }
+
+  public void setLimit(Integer limit) {
+    this.limit = limit;
+  }
+
+  @Override
+  public Integer getLimit() {
+    return limit;
   }
 
   @Override
@@ -64,8 +74,9 @@ public class Neo4jProvider implements Provider {
   public Iterable<StoreEvent> getEventsFrom(String[] streams, String position) {
     Map<String, Object> params = Map.of("position", position);
     var streamList = toStreamList(streams);
+    var lim = limit > 0 ? String.format("LIMIT %d", limit) : "";
     var query = String.format("MATCH (ev: %s) WHERE ev.stream IN [%s] AND ev.position > datetime($position) "
-        + "RETURN ev ORDER BY ev.position ASC", events, streamList);
+        + "RETURN ev ORDER BY ev.position ASC %s", events, streamList, lim);
 
     try (var session = driver.session()) {
       var results = session.run(query, params).list(r -> convert(r.get("ev")));
@@ -77,9 +88,11 @@ public class Neo4jProvider implements Provider {
   public Iterable<StoreEvent> getEventsFor(String stream, String aggregateId, String position) {
     var pos = position.equals("") ? toISOString(new Date(0)) : position;
     Map<String, Object> params = Map.of("stream", stream, "id", aggregateId, "pos", pos);
+
+    var lim = limit > 0 ? String.format("LIMIT %d", limit) : "";
     var query = String
         .format("MATCH (ev: %s) WHERE ev.stream = $stream AND ev.position > datetime($pos) AND ev.aggregateId = $id "
-            + "RETURN ev ORDER BY ev.position ASC", events);
+            + "RETURN ev ORDER BY ev.position ASC %s", events, lim);
 
     try (var session = driver.session()) {
       var results = session.run(query, params).list(r -> convert(r.get("ev")));

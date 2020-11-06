@@ -1,5 +1,6 @@
 package org.evtstore;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,7 +48,7 @@ public class Domain<Agg extends Aggregate> {
   }
 
   public Agg getAggregate(String aggregateId) {
-    var events = this.provider.getEventsFor(stream, aggregateId, "");
+    var events = getAllEventsFor(aggregateId);
     var nextAgg = this.folder.fold(events);
     nextAgg.aggregateId = aggregateId;
     return nextAgg;
@@ -57,4 +58,29 @@ public class Domain<Agg extends Aggregate> {
     return new EventHandler(provider, stream, bookmark);
   }
 
+  private Iterable<StoreEvent> getAllEventsFor(String id) {
+    var allEvents = new ArrayList<StoreEvent>();
+    var limit = provider.getLimit();
+    var lastPos = "";
+
+    while (true) {
+      var events = provider.getEventsFor(stream, id, lastPos);
+      if (limit == 0) {
+        return events;
+      }
+
+      var length = 0;
+      var iterator = events.iterator();
+      while (iterator.hasNext()) {
+        length++;
+        var event = iterator.next();
+        lastPos = event.position;
+        allEvents.add(event);
+      }
+
+      if (length < limit || length == 0) {
+        return allEvents;
+      }
+    }
+  }
 }
