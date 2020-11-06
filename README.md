@@ -17,6 +17,11 @@ The design goals are:
 
 To obtain these goals the design is highly opinionated, but still flexible.
 
+## Tests
+
+- Use `docker-compose up -d` to ensure the databases are available
+- `./gradlew clean test`
+
 ## Example
 
 An example domain is implemented in the [tests](https://gitlab.mypassglobal.com/cwinkler/java-evtstore/-/tree/master/src/test/java/org/evtstore/domain/ex) folder
