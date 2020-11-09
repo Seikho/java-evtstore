@@ -13,16 +13,19 @@ import org.evtstore.Provider;
 import org.evtstore.StoreEvent;
 import org.evtstore.VersionConflictException;
 import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Transaction;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.exceptions.ClientException;
 
-public class Neo4jProvider implements Provider {
+public class TransactNeo4jProvider implements Provider {
   private Driver driver;
   private String events;
   private String bookmarks;
   private Integer limit = 1000;
+  private Transaction trx;
 
-  public Neo4jProvider(Driver driver, String eventsLabel, String bookmarksLabel) {
+  public TransactNeo4jProvider(Driver driver, String eventsLabel, String bookmarksLabel) {
     this.driver = driver;
     this.events = eventsLabel;
     this.bookmarks = bookmarksLabel;
@@ -112,6 +115,26 @@ public class Neo4jProvider implements Provider {
         + "CREATE (ev: %s { stream: $stream, position: datetime.transaction(), version: $version, timestamp: datetime($timestamp), aggregateId: $id, event: $event, _streamPosition: streampos, _streamIdVersion: $streamIdVersion }) RETURN ev",
         events);
 
+    if (trx != null) {
+      try {
+        var result = trx.run(query, params);
+        var ev = result.single().get("ev");
+
+        var stored = event.clone();
+        stored.version = ev.get("version").asInt();
+        stored.position = ev.get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
+        trx = null;
+        return stored;
+      } catch (ClientException ex) {
+        var msg = ex.getMessage();
+        if (msg.contains("already exists")) {
+          throw new VersionConflictException();
+        }
+        trx = null;
+        throw ex;
+      }
+    }
+
     try (var session = driver.session()) {
       var result = session.run(query, params);
       var ev = result.single().get("ev");
@@ -127,6 +150,15 @@ public class Neo4jProvider implements Provider {
       }
       throw ex;
     }
+  }
+
+  public TransactNeo4jProvider transact(Transaction trx) {
+    this.trx = trx;
+    return this;
+  }
+
+  public Session getSession() {
+    return driver.session();
   }
 
   public void migrate() {

@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.stream.StreamSupport;
 
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Streams;
 
 public class MemoryProvider implements Provider {
   private ArrayList<StoreEvent> events = new ArrayList<StoreEvent>();
