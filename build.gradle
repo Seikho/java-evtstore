@@ -26,6 +26,7 @@ dependencies {
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation 'com.google.guava:guava:29.0-jre'
     implementation 'org.neo4j.driver:neo4j-java-driver:4.1.1'
+    implementation 'org.postgresql:postgresql:42.2.18'
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.13'

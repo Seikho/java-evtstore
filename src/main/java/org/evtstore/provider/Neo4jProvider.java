@@ -11,8 +11,10 @@ import java.util.TimeZone;
 import org.evtstore.Aggregate;
 import org.evtstore.Provider;
 import org.evtstore.StoreEvent;
+import org.evtstore.VersionConflictException;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Value;
+import org.neo4j.driver.exceptions.ClientException;
 
 public class Neo4jProvider implements Provider {
   private Driver driver;
@@ -101,7 +103,7 @@ public class Neo4jProvider implements Provider {
   }
 
   @Override
-  public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg) {
+  public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg) throws VersionConflictException {
     var streamIdVersion = event.stream + "_" + agg.aggregateId + "_" + (agg.version + 1);
     Map<String, Object> params = Map.of("stream", event.stream, "version", agg.version + 1, "timestamp",
         toISOString(event.timestamp), "event", event.event, "streamIdVersion", streamIdVersion, "id",
@@ -111,13 +113,21 @@ public class Neo4jProvider implements Provider {
         events);
 
     try (var session = driver.session()) {
-      var result = session.run(query, params);
-      var ev = result.single().get("ev");
+      try {
+        var result = session.run(query, params);
+        var ev = result.single().get("ev");
 
-      var stored = event.clone();
-      stored.version = ev.get("version").asInt();
-      stored.position = ev.get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
-      return stored;
+        var stored = event.clone();
+        stored.version = ev.get("version").asInt();
+        stored.position = ev.get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
+        return stored;
+      } catch (ClientException ex) {
+        var msg = ex.getMessage();
+        if (msg.contains("already exists")) {
+          throw new VersionConflictException();
+        }
+        throw ex;
+      }
     }
   }
 

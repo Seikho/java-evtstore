@@ -3,11 +3,15 @@ package org.evtstore.provider;
 import org.evtstore.Aggregate;
 import org.evtstore.Provider;
 import org.evtstore.StoreEvent;
+import org.evtstore.VersionConflictException;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.StreamSupport;
 
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Streams;
 
 public class MemoryProvider implements Provider {
   private ArrayList<StoreEvent> events = new ArrayList<StoreEvent>();
@@ -34,9 +38,15 @@ public class MemoryProvider implements Provider {
   }
 
   @Override
-  public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg) {
+  public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg) throws VersionConflictException {
+
     var toPersist = event.clone();
     toPersist.version = agg.version + 1;
+    var existing = StreamSupport.stream(this.events.spliterator(), false).anyMatch(ev -> ev.stream.equals(event.stream)
+        && ev.aggregateId.equals(agg.aggregateId) && ev.version.equals(toPersist.version));
+    if (existing) {
+      throw new VersionConflictException();
+    }
     toPersist.position = String.valueOf(events.size());
     this.events.add(toPersist);
     return toPersist;

@@ -32,7 +32,7 @@ An example domain is implemented in the [tests](https://gitlab.mypassglobal.com/
 ```java
 var folder = new MyAggregateFolder(); // Extends Folder
 var provider = new Neo4jProvider(db, "Events", "Bookmarks");
-var domain = new Domain<MyAggregate>("my-event-stream", myDbProvider, myAggregateFolder)
+var domain = new Domain<MyAggregate>("my-event-stream", myDbProvider, myAggregateFolder);
 ```
 
 ## Database Providers

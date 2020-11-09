@@ -1,6 +1,7 @@
 package org.evtstore;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import org.evtstore.domain.ex.ExampleAgg;
 import org.evtstore.domain.ex.cmd.Commands;
@@ -136,6 +137,20 @@ public abstract class ProviderTester {
     var actual = getOne().getAggregate("diff-1");
     assertEquals((Integer) 1, actual.one);
     assertEquals((Integer) 2, actual.two);
+  }
+
+  @Test
+  public void throwOnConflict() {
+    getOne().execute("conflict-1", Commands.doOne(1));
+    var events = getProvider().getEventsFor("test-1", "conflict-1", "");
+    var iter = events.iterator();
+    var event = iter.next();
+    var agg = new ExampleAgg();
+    agg.aggregateId = "conflict-1";
+
+    assertThrows(VersionConflictException.class, () -> {
+      getProvider().append(event, agg);
+    });
   }
 
 }

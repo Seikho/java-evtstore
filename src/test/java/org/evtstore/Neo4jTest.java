@@ -22,7 +22,7 @@ public class Neo4jTest extends ProviderTester {
 
   @BeforeClass
   public static void before() {
-    var driver = GraphDatabase.driver("bolt://localhost:30010", AuthTokens.basic("neo4j", "admin"));
+    var driver = GraphDatabase.driver("bolt://localhost:30003", AuthTokens.basic("neo4j", "admin"));
     try (var session = driver.session()) {
       session.run("MATCH (n: JEvents) DETACH DELETE n");
       session.run("MATCH (n: JBookmarks) DETACH DELETE n");

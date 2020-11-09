@@ -42,7 +42,11 @@ public class Domain<Agg extends Aggregate> {
     storeEvent.version = agg.version + 1;
     storeEvent.stream = this.stream;
     storeEvent.aggregateId = aggregateId;
-    provider.append(storeEvent, agg);
+    try {
+      provider.append(storeEvent, agg);
+    } catch (VersionConflictException e) {
+      e.printStackTrace();
+    }
     var nextAgg = folder.fold(storeEvent, agg);
     return nextAgg;
   }

@@ -22,7 +22,7 @@ public class Neo4jLimitTest extends ProviderTester {
 
   @BeforeClass
   public static void before() {
-    var driver = GraphDatabase.driver("bolt://localhost:30010", AuthTokens.basic("neo4j", "admin"));
+    var driver = GraphDatabase.driver("bolt://localhost:30003", AuthTokens.basic("neo4j", "admin"));
     try (var session = driver.session()) {
       session.run("MATCH (n: JLimitEvents) DETACH DELETE n");
       session.run("MATCH (n: JLimitBookmarks) DETACH DELETE n");
