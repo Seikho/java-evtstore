@@ -10,7 +10,11 @@
 plugins {
     // Apply the java-library plugin to add support for Java Library
     id 'java-library'
+    id 'maven'
 }
+
+group = 'com.github.seikho'
+version = '0.1.1'
 
 repositories {
     // Use jcenter for resolving dependencies.
