@@ -12,9 +12,6 @@ plugins {
     id 'java-library'
 }
 
-group = 'org.mypassglobal.evtstore'
-version = '1.0.1'
-
 repositories {
     // Use jcenter for resolving dependencies.
     // You can declare any Maven/Ivy/file repository here.
