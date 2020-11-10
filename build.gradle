@@ -13,8 +13,11 @@ plugins {
     id 'maven'
 }
 
+sourceCompatibility = 11
+targetCompatibility = 11
+
 group = 'com.github.seikho'
-version = '0.1.1'
+version = '0.1.3'
 
 repositories {
     // Use jcenter for resolving dependencies.
