@@ -30,9 +30,9 @@ To obtain these goals the design is highly opinionated, but still flexible.
 An example domain is implemented in the [tests](https://gitlab.mypassglobal.com/cwinkler/java-evtstore/-/tree/master/src/test/java/org/evtstore/domain/ex) folder
 
 ```java
-var folder = new MyAggregateFolder(); // Extends Folder
-var provider = new Neo4jProvider(db, "Events", "Bookmarks");
-var domain = new Domain<MyAggregate>("my-event-stream", myDbProvider, myAggregateFolder);
+MyAggregateFolder folder = new MyAggregateFolder(); // Extends Folder
+Neo4jProvider provider = new Neo4jProvider(db, "Events", "Bookmarks");
+Domain<MyAggregate> domain = new Domain<MyAggregate>("my-event-stream", myDbProvider, myAggregateFolder);
 ```
 
 ## Database Providers
@@ -49,7 +49,7 @@ You can use the `ProviderTester` test suite to ensure your provider is compatibl
 You can provide your own label names for Events and Bookmarks in the constructor
 
 ```java
-var provider = new Neo4jProvider(dbDriver, "MyEventsLabel", "MyBookmarksLabel");
+Neo4jProvider provider = new Neo4jProvider(dbDriver, "MyEventsLabel", "MyBookmarksLabel");
 
 // Creates indexes and constraints to ensure event log validity
 provier.migrate();

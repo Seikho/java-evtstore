@@ -6,6 +6,7 @@ import org.evtstore.StoreEvent;
 import org.evtstore.VersionConflictException;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.StreamSupport;
@@ -18,20 +19,20 @@ public class MemoryProvider implements Provider {
 
   @Override
   public Iterable<StoreEvent> getEventsFor(String stream, String id, String position) {
-    var events = Collections2.filter(this.events,
+    Collection<StoreEvent> events = Collections2.filter(this.events,
         event -> event.stream.equals(stream) && event.aggregateId.equals(id) && isHigher(event.position, position));
     return events;
   }
 
   @Override
   public Iterable<StoreEvent> getEventsFrom(String stream, String position) {
-    var streams = new String[] { stream };
+    String[] streams = new String[] { stream };
     return getEventsFrom(streams, position);
   }
 
   @Override
   public Iterable<StoreEvent> getEventsFrom(String[] streams, String position) {
-    var events = Collections2.filter(this.events,
+    Collection<StoreEvent> events = Collections2.filter(this.events,
         event -> includes(streams, event.stream) && isHigher(event.position, position));
     return events;
   }
@@ -39,10 +40,12 @@ public class MemoryProvider implements Provider {
   @Override
   public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg) throws VersionConflictException {
 
-    var toPersist = event.clone();
+    StoreEvent toPersist = event.clone();
     toPersist.version = agg.version + 1;
-    var existing = StreamSupport.stream(this.events.spliterator(), false).anyMatch(ev -> ev.stream.equals(event.stream)
-        && ev.aggregateId.equals(agg.aggregateId) && ev.version.equals(toPersist.version));
+    boolean existing = StreamSupport.stream(this.events.spliterator(), false)
+        .anyMatch(ev -> ev.stream.equals(event.stream) && ev.aggregateId.equals(agg.aggregateId)
+            && ev.version.equals(toPersist.version));
+
     if (existing) {
       throw new VersionConflictException();
     }
@@ -53,7 +56,7 @@ public class MemoryProvider implements Provider {
 
   @Override
   public String getPosition(String bookmark) {
-    var bm = this.bookmarks.getOrDefault(bookmark, "");
+    String bm = this.bookmarks.getOrDefault(bookmark, "");
     return bm;
   }
 
@@ -77,8 +80,8 @@ public class MemoryProvider implements Provider {
   }
 
   private boolean isHigher(String high, String low) {
-    var h = high.equals("") ? 0 : Integer.parseInt(high);
-    var l = low.equals("") ? 0 : Integer.parseInt(low);
+    Integer h = high.equals("") ? 0 : Integer.parseInt(high);
+    Integer l = low.equals("") ? 0 : Integer.parseInt(low);
     return h > l;
   }
 

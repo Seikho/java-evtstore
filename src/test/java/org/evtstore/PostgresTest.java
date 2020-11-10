@@ -29,7 +29,8 @@ public class PostgresTest extends ProviderTester {
       ex.printStackTrace();
     }
 
-    try (var conn = DriverManager.getConnection("jdbc:postgresql://localhost:30002/postgres", "admin", "admin")) {
+    try (
+        Connection conn = DriverManager.getConnection("jdbc:postgresql://localhost:30002/postgres", "admin", "admin")) {
       conn.createStatement().execute("DROP DATABASE IF EXISTS postgres_test");
       conn.createStatement().execute("CREATE DATABASE postgres_test");
     } catch (SQLException ex) {
@@ -38,7 +39,8 @@ public class PostgresTest extends ProviderTester {
 
     Supplier<Connection> connection = () -> {
       try {
-        var conn = DriverManager.getConnection("jdbc:postgresql://localhost:30002/postgres_test", "admin", "admin");
+        Connection conn = DriverManager.getConnection("jdbc:postgresql://localhost:30002/postgres_test", "admin",
+            "admin");
         return conn;
       } catch (SQLException ex) {
         ex.printStackTrace();
@@ -46,7 +48,7 @@ public class PostgresTest extends ProviderTester {
       }
     };
 
-    var provider = new PostgresProvider(connection, "jevents", "jbookmarks");
+    PostgresProvider provider = new PostgresProvider(connection, "jevents", "jbookmarks");
     provider.migrate();
     PostgresTest.provider = provider;
     PostgresTest.one = new DomainExample(provider, "test-1");

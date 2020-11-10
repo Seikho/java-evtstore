@@ -3,20 +3,23 @@ package org.evtstore.domain.ex.cmd;
 import org.evtstore.Command;
 import org.evtstore.CommandHandler;
 import org.evtstore.Domain;
+import org.evtstore.Payload;
 import org.evtstore.domain.ex.ExampleAgg;
 import org.evtstore.domain.ex.ExampleFold;
 import org.evtstore.provider.TransactNeo4jProvider;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Transaction;
 
 public class DomainTransact extends Domain<ExampleAgg> {
   private TransactNeo4jProvider prv;
 
   private CommandHandler<DoOne, ExampleAgg> doOne = new CommandHandler<DoOne, ExampleAgg>(DoOne.class, (cmd, agg) -> {
-    var payload = Events.evOne(cmd.one);
+    Payload payload = Events.evOne(cmd.one);
     return payload;
   });
 
   private CommandHandler<DoTwo, ExampleAgg> doTwo = new CommandHandler<DoTwo, ExampleAgg>(DoTwo.class, (cmd, agg) -> {
-    var payload = Events.evTwo(cmd.two);
+    Payload payload = Events.evTwo(cmd.two);
     return payload;
   });
 
@@ -28,10 +31,10 @@ public class DomainTransact extends Domain<ExampleAgg> {
 
   @Override
   public <Cmd extends Command> ExampleAgg execute(String aggregateId, Cmd cmd) {
-    try (var sess = prv.getSession()) {
-      var trx = sess.beginTransaction();
+    try (Session sess = prv.getSession()) {
+      Transaction trx = sess.beginTransaction();
       prv.transact(trx);
-      var result = super.execute(aggregateId, cmd);
+      ExampleAgg result = super.execute(aggregateId, cmd);
       trx.commit();
       return result;
     }

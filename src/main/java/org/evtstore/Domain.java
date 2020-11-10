@@ -2,6 +2,7 @@ package org.evtstore;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class Domain<Agg extends Aggregate> {
@@ -17,28 +18,28 @@ public class Domain<Agg extends Aggregate> {
   }
 
   public <Cmd extends Command> void register(CommandHandler<Cmd, Agg> handler) {
-    var casted = (CommandHandler<Command, Agg>) handler;
+    CommandHandler<Command, Agg> casted = (CommandHandler<Command, Agg>) handler;
     this.commands.put(handler.type, casted);
   }
 
   public <Cmd extends Command> Agg execute(String aggregateId, Cmd cmd) {
-    var agg = getAggregate(aggregateId);
-    var type = cmd.getClass().getSimpleName();
+    Agg agg = getAggregate(aggregateId);
+    String type = cmd.getClass().getSimpleName();
     // Should we throw here?
     // This may be unexpected
     if (!commands.containsKey(type)) {
       return agg;
     }
 
-    var command = this.commands.get(type);
+    CommandHandler<Cmd, Agg> command = (CommandHandler<Cmd, Agg>) this.commands.get(type);
 
     // The handler did not return an event, no need to append
-    var payload = command.handler.apply(cmd, agg);
+    Payload payload = command.handler.apply(cmd, agg);
     if (payload == null) {
       return agg;
     }
 
-    var storeEvent = new StoreEvent(payload);
+    StoreEvent storeEvent = new StoreEvent(payload);
     storeEvent.version = agg.version + 1;
     storeEvent.stream = this.stream;
     storeEvent.aggregateId = aggregateId;
@@ -47,13 +48,13 @@ public class Domain<Agg extends Aggregate> {
     } catch (VersionConflictException e) {
       e.printStackTrace();
     }
-    var nextAgg = folder.fold(storeEvent, agg);
+    Agg nextAgg = folder.fold(storeEvent, agg);
     return nextAgg;
   }
 
   public Agg getAggregate(String aggregateId) {
-    var events = getAllEventsFor(aggregateId);
-    var nextAgg = this.folder.fold(events);
+    Iterable<StoreEvent> events = getAllEventsFor(aggregateId);
+    Agg nextAgg = this.folder.fold(events);
     nextAgg.aggregateId = aggregateId;
     return nextAgg;
   }
@@ -63,21 +64,21 @@ public class Domain<Agg extends Aggregate> {
   }
 
   private Iterable<StoreEvent> getAllEventsFor(String id) {
-    var allEvents = new ArrayList<StoreEvent>();
-    var limit = provider.getLimit();
-    var lastPos = "";
+    ArrayList<StoreEvent> allEvents = new ArrayList<StoreEvent>();
+    Integer limit = provider.getLimit();
+    String lastPos = "";
 
     while (true) {
-      var events = provider.getEventsFor(stream, id, lastPos);
+      Iterable<StoreEvent> events = provider.getEventsFor(stream, id, lastPos);
       if (limit == 0) {
         return events;
       }
 
-      var length = 0;
-      var iterator = events.iterator();
+      Integer length = 0;
+      Iterator<StoreEvent> iterator = events.iterator();
       while (iterator.hasNext()) {
         length++;
-        var event = iterator.next();
+        StoreEvent event = iterator.next();
         lastPos = event.position;
         allEvents.add(event);
       }

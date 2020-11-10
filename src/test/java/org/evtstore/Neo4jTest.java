@@ -8,7 +8,9 @@ import org.evtstore.domain.ex.ExampleAgg;
 import org.evtstore.provider.Neo4jProvider;
 import org.junit.BeforeClass;
 import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Session;
 
 public class Neo4jTest extends ProviderTester {
   private static Provider provider;
@@ -22,12 +24,12 @@ public class Neo4jTest extends ProviderTester {
 
   @BeforeClass
   public static void before() {
-    var driver = GraphDatabase.driver("bolt://localhost:30003", AuthTokens.basic("neo4j", "admin"));
-    try (var session = driver.session()) {
+    Driver driver = GraphDatabase.driver("bolt://localhost:30003", AuthTokens.basic("neo4j", "admin"));
+    try (Session session = driver.session()) {
       session.run("MATCH (n: JEvents) DETACH DELETE n");
       session.run("MATCH (n: JBookmarks) DETACH DELETE n");
     }
-    var provider = new Neo4jProvider(driver, "JEvents", "JBookmarks");
+    Neo4jProvider provider = new Neo4jProvider(driver, "JEvents", "JBookmarks");
     provider.migrate();
     Neo4jTest.provider = provider;
     Neo4jTest.one = new DomainExample(provider, "test-1");

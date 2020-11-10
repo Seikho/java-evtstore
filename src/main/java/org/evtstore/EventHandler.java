@@ -1,6 +1,7 @@
 package org.evtstore;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -17,7 +18,7 @@ public class EventHandler {
   public EventHandler(Provider provider, String stream, String bookmark) {
     this.provider = provider;
     this.bookmark = bookmark;
-    var bm = provider.getPosition(bookmark);
+    String bm = provider.getPosition(bookmark);
     this.position = bm;
     this.process();
     this.streams = new String[] { stream };
@@ -26,7 +27,7 @@ public class EventHandler {
   public EventHandler(Provider provider, String[] streams, String bookmark) {
     this.provider = provider;
     this.bookmark = bookmark;
-    var bm = provider.getPosition(bookmark);
+    String bm = provider.getPosition(bookmark);
     this.position = bm;
     this.process();
     this.streams = streams;
@@ -56,16 +57,16 @@ public class EventHandler {
   }
 
   public Integer runOnce(Integer prevCount) {
-    var events = this.provider.getEventsFrom(streams, position);
+    Iterable<StoreEvent> events = this.provider.getEventsFrom(streams, position);
 
-    var iterator = events.iterator();
+    Iterator<StoreEvent> iterator = events.iterator();
     int size = 0;
     while (iterator.hasNext()) {
       size++;
-      var storeEvent = iterator.next();
-      var event = new Event(storeEvent);
-      var type = event.payload.get("type").asString();
-      var handler = handlers.get(type);
+      StoreEvent storeEvent = iterator.next();
+      Event event = new Event(storeEvent);
+      String type = event.payload.get("type").asString();
+      Consumer<Event> handler = handlers.get(type);
 
       if (handler == null) {
         provider.setPosition(this.bookmark, event.position);
@@ -100,7 +101,7 @@ public class EventHandler {
   }
 
   public <E extends Event> void handle(String type, Consumer<E> handler) {
-    var casted = (Consumer<Event>) handler;
+    Consumer<Event> casted = (Consumer<Event>) handler;
     this.handlers.put(type, casted);
   }
 }

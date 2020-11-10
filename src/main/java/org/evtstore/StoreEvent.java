@@ -20,7 +20,7 @@ public class StoreEvent {
   }
 
   public StoreEvent clone() {
-    var newEvent = new StoreEvent();
+    StoreEvent newEvent = new StoreEvent();
     newEvent.stream = stream;
     newEvent.aggregateId = aggregateId;
     newEvent.version = version;

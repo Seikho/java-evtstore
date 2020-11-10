@@ -5,7 +5,9 @@ import org.evtstore.domain.ex.ExampleAgg;
 import org.evtstore.provider.TransactNeo4jProvider;
 import org.junit.BeforeClass;
 import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Session;
 
 public class TransactionNeo4jTest extends ProviderTester {
   private static Provider provider;
@@ -19,12 +21,12 @@ public class TransactionNeo4jTest extends ProviderTester {
 
   @BeforeClass
   public static void before() {
-    var driver = GraphDatabase.driver("bolt://localhost:30003", AuthTokens.basic("neo4j", "admin"));
-    try (var session = driver.session()) {
+    Driver driver = GraphDatabase.driver("bolt://localhost:30003", AuthTokens.basic("neo4j", "admin"));
+    try (Session session = driver.session()) {
       session.run("MATCH (n: JEvents) DETACH DELETE n");
       session.run("MATCH (n: JBookmarks) DETACH DELETE n");
     }
-    var provider = new TransactNeo4jProvider(driver, "JEvents", "JBookmarks");
+    TransactNeo4jProvider provider = new TransactNeo4jProvider(driver, "JEvents", "JBookmarks");
     provider.migrate();
     TransactionNeo4jTest.provider = provider;
     TransactionNeo4jTest.one = new DomainExample(provider, "test-1");

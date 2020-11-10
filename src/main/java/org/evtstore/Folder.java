@@ -1,6 +1,7 @@
 package org.evtstore;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -19,18 +20,18 @@ public class Folder<Agg extends Aggregate> {
   }
 
   public Agg fold(Iterable<StoreEvent> events) {
-    var nextAgg = this.aggregate.get();
-    for (var i = events.iterator(); i.hasNext();) {
-      var storeEvent = i.next();
+    Agg nextAgg = this.aggregate.get();
+    for (Iterator<StoreEvent> i = events.iterator(); i.hasNext();) {
+      StoreEvent storeEvent = i.next();
       nextAgg = this.fold(storeEvent, nextAgg);
     }
     return nextAgg;
   }
 
   public Agg fold(StoreEvent storeEvent, Agg agg) {
-    var event = new Event(storeEvent);
-    var handler = this.handlers.get(event.payload.get("type").asString());
-    var nextAgg = handler.apply(event, agg);
+    Event event = new Event(storeEvent);
+    BiFunction<Event, Agg, Agg> handler = this.handlers.get(event.payload.get("type").asString());
+    Agg nextAgg = handler.apply(event, agg);
     nextAgg.version = event.version;
     return nextAgg;
   }

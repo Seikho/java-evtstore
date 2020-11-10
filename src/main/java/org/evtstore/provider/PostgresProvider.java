@@ -1,7 +1,9 @@
 package org.evtstore.provider;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,17 +36,17 @@ public class PostgresProvider implements Provider {
 
   @Override
   public String getPosition(String bookmark) {
-    var query = String.format("SELECT position FROM %s WHERE bookmark = ?", bookmarks);
+    String query = String.format("SELECT position FROM %s WHERE bookmark = ?", bookmarks);
 
     try {
-      var result = query(query, bookmark).getResultSet();
+      ResultSet result = query(query, bookmark).getResultSet();
 
       if (result == null) {
         return "0";
       }
 
       if (result.next()) {
-        var pos = result.getInt(1);
+        int pos = result.getInt(1);
         return String.valueOf(pos);
       }
 
@@ -58,7 +60,7 @@ public class PostgresProvider implements Provider {
 
   @Override
   public void setPosition(String bookmark, String position) {
-    var query = String.format(
+    String query = String.format(
         "INSERT INTO %s (bookmark, position) VALUES (?, ?) ON CONFLICT (bookmark) UPDATE SET position = ?", bookmarks);
     try {
       query(query, bookmark, position);
@@ -68,20 +70,20 @@ public class PostgresProvider implements Provider {
 
   @Override
   public Iterable<StoreEvent> getEventsFor(String stream, String aggregateId, String position) {
-    var query = String.format("SELECT position, version, timestamp, event FROM %s "
+    String query = String.format("SELECT position, version, timestamp, event FROM %s "
         + "WHERE stream = ? AND aggregate_id = ? AND position > ? ORDER BY version ASC", events);
 
     if (limit > 0) {
       query += " LIMIT " + limit;
     }
 
-    var events = new ArrayList<StoreEvent>();
+    ArrayList<StoreEvent> events = new ArrayList<StoreEvent>();
     try {
-      var pos = position.equals("") ? 0 : Integer.parseInt(position);
-      var rs = query(query, stream, aggregateId, pos).getResultSet();
+      int pos = position.equals("") ? 0 : Integer.parseInt(position);
+      ResultSet rs = query(query, stream, aggregateId, pos).getResultSet();
 
       while (rs.next()) {
-        var event = new StoreEvent();
+        StoreEvent event = new StoreEvent();
         event.stream = stream;
         event.aggregateId = aggregateId;
         event.position = rs.getString(1);
@@ -104,19 +106,19 @@ public class PostgresProvider implements Provider {
 
   @Override
   public Iterable<StoreEvent> getEventsFrom(String[] streams, String position) {
-    var query = String.format("SELECT position, version, timestamp, event, stream, aggregate_id FROM %s "
+    String query = String.format("SELECT position, version, timestamp, event, stream, aggregate_id FROM %s "
         + "WHERE stream IN (%s) AND position > ? ORDER BY position ASC", events, toStreamList(streams));
     if (limit > 0) {
       query += " LIMIT " + limit;
     }
 
-    var events = new ArrayList<StoreEvent>();
+    ArrayList<StoreEvent> events = new ArrayList<StoreEvent>();
     try {
-      var pos = position.equals("") ? 0 : Integer.parseInt(position);
-      var rs = query(query, pos).getResultSet();
+      int pos = position.equals("") ? 0 : Integer.parseInt(position);
+      ResultSet rs = query(query, pos).getResultSet();
 
       while (rs.next()) {
-        var event = new StoreEvent();
+        StoreEvent event = new StoreEvent();
         event.position = rs.getString(1);
         event.version = rs.getInt(2);
         event.timestamp = rs.getTimestamp(3);
@@ -133,14 +135,14 @@ public class PostgresProvider implements Provider {
 
   @Override
   public <Agg extends Aggregate> StoreEvent append(StoreEvent event, Agg agg) throws VersionConflictException {
-    var query = String.format(
+    String query = String.format(
         "INSERT INTO %s (stream, version, aggregate_id, timestamp, event) VALUES (?, ?, ?, ?, ?) RETURNING position",
         events);
-    var version = agg.version + 1;
+    int version = agg.version + 1;
 
     try {
-      var rs = query(query, event.stream, version, agg.aggregateId, event.timestamp, event.event).getResultSet();
-      var stored = event.clone();
+      ResultSet rs = query(query, event.stream, version, agg.aggregateId, event.timestamp, event.event).getResultSet();
+      StoreEvent stored = event.clone();
       rs.next();
       stored.position = String.valueOf(rs.getInt(1));
       return stored;
@@ -154,13 +156,13 @@ public class PostgresProvider implements Provider {
 
   public void migrate() {
 
-    try (var conn = getConnection.get()) {
-      var meta = conn.getMetaData();
-      var eventsTable = meta.getTables(null, null, events, null);
-      var bookmarksTable = meta.getTables(null, null, bookmarks, null);
+    try (Connection conn = getConnection.get()) {
+      DatabaseMetaData meta = conn.getMetaData();
+      ResultSet eventsTable = meta.getTables(null, null, events, null);
+      ResultSet bookmarksTable = meta.getTables(null, null, bookmarks, null);
 
-      var hasEvents = eventsTable.next();
-      var hasBookmarks = bookmarksTable.next();
+      boolean hasEvents = eventsTable.next();
+      boolean hasBookmarks = bookmarksTable.next();
 
       if (!hasEvents) {
         query(String.format(
@@ -188,15 +190,15 @@ public class PostgresProvider implements Provider {
   }
 
   private PreparedStatement query(String query, Object... values) throws VersionConflictException {
-    try (var conn = getConnection.get()) {
-      var ps = conn.prepareStatement(query);
+    try (Connection conn = getConnection.get()) {
+      PreparedStatement ps = conn.prepareStatement(query);
       for (int i = 0; i < values.length; i++) {
-        var value = values[i];
-        var idx = i + 1;
+        Object value = values[i];
+        int idx = i + 1;
 
         if (value instanceof Date) {
-          var d = (Date) value;
-          var date = new java.sql.Date(d.getTime());
+          Date d = (Date) value;
+          java.sql.Date date = new java.sql.Date(d.getTime());
           ps.setDate(idx, date);
           continue;
         }
@@ -219,8 +221,8 @@ public class PostgresProvider implements Provider {
       return ps;
 
     } catch (SQLException ex) {
-      var lowered = query.toLowerCase();
-      var msg = ex.getMessage();
+      String lowered = query.toLowerCase();
+      String msg = ex.getMessage();
       if (msg.contains("violates unique constraint")) {
         throw new VersionConflictException();
       }
@@ -238,8 +240,8 @@ public class PostgresProvider implements Provider {
   }
 
   private String toStreamList(String[] streams) {
-    var stream = Arrays.stream(streams).map(s -> "'" + s + "'").toArray();
-    var clause = "";
+    Object[] stream = Arrays.stream(streams).map(s -> "'" + s + "'").toArray();
+    String clause = "";
 
     for (int i = 0; i < stream.length; i++) {
       if (i == stream.length - 1) {
