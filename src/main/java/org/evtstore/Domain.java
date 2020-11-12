@@ -8,7 +8,7 @@ public class Domain<Agg extends Aggregate> {
   private String stream;
   private Provider provider;
   private Folder<Agg> folder;
-  private Map<String, CommandHandler<Command, Agg>> commands = new HashMap<String, CommandHandler<Command, Agg>>();
+  private Map<String, CommandHandler<Object, Agg>> commands = new HashMap<>();
 
   public Domain(String stream, Provider provider, Folder<Agg> folder) {
     this.stream = stream;
@@ -16,12 +16,12 @@ public class Domain<Agg extends Aggregate> {
     this.folder = folder;
   }
 
-  public <Cmd extends Command> void register(CommandHandler<Cmd, Agg> handler) {
-    var casted = (CommandHandler<Command, Agg>) handler;
+  public <Cmd> void register(CommandHandler<Cmd, Agg> handler) {
+    var casted = (CommandHandler<Object, Agg>) handler;
     this.commands.put(handler.type, casted);
   }
 
-  public <Cmd extends Command> Agg execute(String aggregateId, Cmd cmd) {
+  public <Cmd> Agg execute(String aggregateId, Cmd cmd) {
     var agg = getAggregate(aggregateId);
     var type = cmd.getClass().getSimpleName();
     // Should we throw here?
