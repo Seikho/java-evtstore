@@ -29,7 +29,14 @@ public class Folder<Agg extends Aggregate> {
 
   public Agg fold(StoreEvent storeEvent, Agg agg) {
     var event = new Event(storeEvent);
-    var handler = this.handlers.get(event.payload.get("type").asString());
+    var type = event.payload.get("type").asString();
+    var handler = this.handlers.get(type);
+
+    if (handler == null) {
+      agg.version = event.version;
+      return agg;
+    }
+
     var nextAgg = handler.apply(event, agg);
     nextAgg.version = event.version;
     return nextAgg;
