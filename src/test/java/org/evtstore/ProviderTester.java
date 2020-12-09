@@ -19,7 +19,7 @@ public abstract class ProviderTester {
   @Test
   public void appendEvent() {
     var actual = getOne().execute("one", Commands.doOne(42));
-    assertEquals((Integer) 1, actual.version);
+    assertEquals((Double) 1.0, actual.version);
     assertEquals((Integer) 42, actual.one);
   }
 
@@ -29,9 +29,9 @@ public abstract class ProviderTester {
     var first = getOne().execute(id, Commands.doOne(1));
     var second = getOne().execute(id, Commands.doTwo(2));
     var actual = getOne().getAggregate(id);
-    assertEquals((Integer) 1, first.version);
-    assertEquals((Integer) 2, second.version);
-    assertEquals((Integer) 2, actual.version);
+    assertEquals((Double) 1.0, first.version);
+    assertEquals((Double) 2.0, second.version);
+    assertEquals((Double) 2.0, actual.version);
     assertEquals((Integer) 1, actual.one);
     assertEquals((Integer) 2, actual.two);
   }
@@ -40,10 +40,10 @@ public abstract class ProviderTester {
   public void appendToNewAggregate() {
     var id = "appendToNewAggregate";
     var agg = getOne().getAggregate(id);
-    assertEquals((Integer) 0, agg.version);
+    assertEquals((Double) 0.0, agg.version);
     getOne().execute(id, Commands.doOne(10));
     var actual = getOne().getAggregate(id);
-    assertEquals((Integer) 1, actual.version);
+    assertEquals((Double) 1.0, actual.version);
     assertEquals((Integer) 10, actual.one);
   }
 
@@ -52,8 +52,8 @@ public abstract class ProviderTester {
     var id = "three";
     getOne().execute(id, Commands.doOne(8));
     getOne().execute(id, Commands.doOne(16));
-    var actual = new Field<Integer>(0);
-    Integer expected = 24;
+    var actual = new Field<Double>(0.0);
+    Double expected = 24.0;
     var model = getOne().createHandler("test-1", "bm1");
     model.handle("EvOne", ev -> {
       if (!ev.aggregateId.equals(id)) {
@@ -70,7 +70,7 @@ public abstract class ProviderTester {
   @Test
   public void emptyAggregate() {
     var actual = getOne().getAggregate("non-exist");
-    assertEquals((Integer) 0, actual.version);
+    assertEquals((Double) 0.0, actual.version);
   }
 
   @Test

@@ -85,7 +85,7 @@ public class PostgresProvider implements Provider {
         event.stream = stream;
         event.aggregateId = aggregateId;
         event.position = rs.getString(1);
-        event.version = rs.getInt(2);
+        event.version = (double)rs.getInt(2);
         event.timestamp = rs.getTimestamp(3);
         event.event = rs.getString(4);
         events.add(event);
@@ -118,7 +118,7 @@ public class PostgresProvider implements Provider {
       while (rs.next()) {
         var event = new StoreEvent();
         event.position = rs.getString(1);
-        event.version = rs.getInt(2);
+        event.version = (double)rs.getInt(2);
         event.timestamp = rs.getTimestamp(3);
         event.event = rs.getString(4);
         event.stream = rs.getString(5);
@@ -139,7 +139,7 @@ public class PostgresProvider implements Provider {
     var version = agg.version + 1;
 
     try {
-      var rs = query(query, event.stream, version, agg.aggregateId, event.timestamp, event.event).getResultSet();
+      var rs = query(query, event.stream, (int)version, agg.aggregateId, event.timestamp, event.event).getResultSet();
       var stored = event.clone();
       rs.next();
       stored.position = String.valueOf(rs.getInt(1));

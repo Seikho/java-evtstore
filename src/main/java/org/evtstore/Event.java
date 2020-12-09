@@ -8,7 +8,7 @@ import com.eclipsesource.json.JsonObject;
 public class Event {
   public String stream;
   public String aggregateId;
-  public Integer version;
+  public Double version;
   public Date timestamp;
   public JsonObject payload;
   public String position;

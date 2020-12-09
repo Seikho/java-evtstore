@@ -5,7 +5,7 @@ import java.util.Date;
 public class StoreEvent {
   public String stream;
   public String aggregateId;
-  public Integer version;
+  public Double version;
   public Date timestamp;
   public String event;
   public String position;

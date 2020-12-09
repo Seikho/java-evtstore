@@ -117,7 +117,7 @@ public class Neo4jProvider implements Provider {
       var ev = result.single().get("ev");
 
       var stored = event.clone();
-      stored.version = ev.get("version").asInt();
+      stored.version = ev.get("version").asDouble();
       stored.position = ev.get("position").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
       return stored;
     } catch (ClientException ex) {
@@ -181,7 +181,7 @@ public class Neo4jProvider implements Provider {
     ev.aggregateId = record.get("aggregateId").asString();
     ev.event = record.get("event").asString();
     ev.stream = record.get("stream").asString();
-    ev.version = record.get("version").asInt();
+    ev.version = record.get("version").asDouble();
     var timestamp = record.get("timestamp").asOffsetDateTime().format(DateTimeFormatter.ISO_DATE_TIME);
     var dt = OffsetDateTime.parse(timestamp);
     ev.timestamp = new Date(dt.toInstant().toEpochMilli());
